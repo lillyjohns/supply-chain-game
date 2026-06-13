@@ -58,6 +58,8 @@ npm start
 
 ## ☁️ Deployment
 
+**Live URL:** https://dfmdnd4sfld8d.cloudfront.net
+
 ```bash
 ./infra/deploy.sh
 ```
@@ -65,6 +67,7 @@ npm start
 Deploys to AWS (ap-southeast-1):
 - EC2 t3.small (Amazon Linux 2023)
 - CloudFront with geo-restriction (TH, SG)
+- WebSocket support via Socket.IO (CachingDisabled + AllViewerAndCloudFrontHeaders policy)
 
 ## 📜 License
 MIT
