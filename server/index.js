@@ -65,10 +65,38 @@ io.on('connection', (socket) => {
       callback({ success: false, error: 'ไม่พบห้อง' });
       return;
     }
+
+    // Allow rejoin if game already started — match by name
     if (game.phase !== PHASES.LOBBY) {
-      callback({ success: false, error: 'เกมเริ่มแล้ว' });
+      const rejoinName = (data.name || '').trim();
+      const existingEntry = Object.entries(game.players).find(
+        ([pid, p]) => p.name === rejoinName
+      );
+      if (existingEntry) {
+        const [oldId, playerData] = existingEntry;
+        // Swap socket id
+        game.players[socket.id] = playerData;
+        delete game.players[oldId];
+        // Update playerOrder
+        const idx = game.playerOrder.indexOf(oldId);
+        if (idx !== -1) game.playerOrder[idx] = socket.id;
+        // Update host if needed
+        if (game.hostId === oldId) game.hostId = socket.id;
+        // Update currentOrderPicker if needed
+        if (game.currentOrderPicker === oldId) game.currentOrderPicker = socket.id;
+        
+        playerName = rejoinName;
+        socket.join(roomCode);
+        currentRoom = roomCode;
+        callback({ success: true, roomCode, playerId: socket.id, rejoined: true });
+        io.to(roomCode).emit('game_state', getGameState(game, socket.id));
+        console.log(`Player ${rejoinName} rejoined room ${roomCode}`);
+        return;
+      }
+      callback({ success: false, error: 'เกมเริ่มแล้ว — ใส่ชื่อเดิมเพื่อกลับเข้าเกม' });
       return;
     }
+
     if (Object.keys(game.players).length >= 4) {
       callback({ success: false, error: 'ห้องเต็ม' });
       return;

@@ -28,6 +28,27 @@ function App() {
     };
   }, [screen]);
 
+  // Auto-rejoin on page reload
+  useEffect(() => {
+    const savedRoom = localStorage.getItem('scg_room');
+    const savedName = localStorage.getItem('scg_name');
+    if (savedRoom && savedName) {
+      setPlayerName(savedName);
+      setRoomCode(savedRoom);
+      socket.emit('join_game', { name: savedName, roomCode: savedRoom }, (res) => {
+        if (res.success) {
+          setPlayerId(res.playerId);
+          setRoomCode(res.roomCode);
+          setScreen(res.rejoined ? 'game' : 'lobby');
+        } else {
+          // Game gone, clear storage
+          localStorage.removeItem('scg_room');
+          localStorage.removeItem('scg_name');
+        }
+      });
+    }
+  }, []);
+
   const createGame = () => {
     if (!playerName.trim()) { setError('กรุณาใส่ชื่อ'); return; }
     socket.emit('create_game', { name: playerName.trim() }, (res) => {
@@ -36,6 +57,8 @@ function App() {
         setRoomCode(res.roomCode);
         setScreen('lobby');
         setError('');
+        localStorage.setItem('scg_room', res.roomCode);
+        localStorage.setItem('scg_name', playerName.trim());
       } else {
         setError(res.error);
       }
@@ -49,8 +72,10 @@ function App() {
       if (res.success) {
         setPlayerId(res.playerId);
         setRoomCode(res.roomCode);
-        setScreen('lobby');
+        setScreen(res.rejoined ? 'game' : 'lobby');
         setError('');
+        localStorage.setItem('scg_room', res.roomCode);
+        localStorage.setItem('scg_name', playerName.trim());
       } else {
         setError(res.error);
       }
