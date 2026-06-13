@@ -118,14 +118,22 @@ function PurchasePhase({ gameState, playerId, socket, goodsInfo }) {
             </div>
             <div className="vendor-order">
               <label>จำนวน:</label>
-              <input
-                type="number"
-                min="0"
-                max="100"
-                value={quantities[color]}
-                onChange={(e) => updateQuantity(color, e.target.value)}
-                className="qty-input"
-              />
+              <div className="qty-controls">
+                <button className="qty-btn" onClick={() => updateQuantity(color, Math.max(0, quantities[color] - 5))}>-5</button>
+                <button className="qty-btn" onClick={() => updateQuantity(color, Math.max(0, quantities[color] - 1))}>-</button>
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={quantities[color]}
+                  onChange={(e) => updateQuantity(color, e.target.value)}
+                  onInput={(e) => updateQuantity(color, e.target.value)}
+                  className="qty-input"
+                  inputMode="numeric"
+                />
+                <button className="qty-btn" onClick={() => updateQuantity(color, quantities[color] + 1)}>+</button>
+                <button className="qty-btn" onClick={() => updateQuantity(color, quantities[color] + 5)}>+5</button>
+              </div>
             </div>
             {quotes[color] && quantities[color] > 0 && (
               <div className="quote-info">

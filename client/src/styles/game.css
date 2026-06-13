@@ -887,3 +887,32 @@ body {
     padding: 24px;
   }
 }
+
+/* Quantity controls for mobile */
+.qty-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.qty-btn {
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-card);
+  color: var(--text);
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.qty-btn:active {
+  background: var(--primary);
+  color: white;
+}
+.qty-input {
+  width: 50px !important;
+  text-align: center;
+}
