@@ -368,25 +368,39 @@ function endGame(game) {
   for (const playerId of game.playerOrder) {
     const player = game.players[playerId];
     
+    // Remaining inventory value at 100% base price
     let inventoryValue = 0;
     for (const color of GOOD_COLORS) {
       inventoryValue += (player.warehouse[color] || 0) * GOODS[color].basePrice * INVENTORY_VALUE_MULTIPLIER;
     }
     
-    let unfulfilledPenalty = 0;
-    for (const order of player.activeOrders) {
-      for (const item of order.items) {
-        unfulfilledPenalty += GOODS[item.color].basePrice * item.quantity * 1.5;
-      }
+    // In-transit shipments also count at 100% base price
+    let inTransitValue = 0;
+    for (const shipment of player.pendingShipments) {
+      inTransitValue += shipment.quantity * GOODS[shipment.color].basePrice;
     }
     
-    const finalScore = Math.round(player.cash + inventoryValue - unfulfilledPenalty);
+    // Only penalize OVERDUE orders (dueTurn <= currentTurn)
+    // Orders not yet due = no penalty
+    let unfulfilledPenalty = 0;
+    for (const order of player.activeOrders) {
+      if (order.dueTurn <= game.currentTurn) {
+        // Overdue — penalty applies
+        for (const item of order.items) {
+          unfulfilledPenalty += GOODS[item.color].basePrice * item.quantity * 1.5;
+        }
+      }
+      // Orders not yet due: no penalty
+    }
+    
+    const finalScore = Math.round(player.cash + inventoryValue + inTransitValue - unfulfilledPenalty);
     
     scores.push({
       playerId,
       playerName: player.name,
       cash: player.cash,
       inventoryValue: Math.round(inventoryValue),
+      inTransitValue: Math.round(inTransitValue),
       unfulfilledPenalty: Math.round(unfulfilledPenalty),
       finalScore,
       totalRevenue: player.totalRevenue,

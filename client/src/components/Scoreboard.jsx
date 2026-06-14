@@ -7,7 +7,7 @@ function Scoreboard({ gameState, playerId }) {
     <div className="scoreboard-screen">
       <div className="scoreboard-container">
         <h1>🏆 จบเกม!</h1>
-        <h2>ผลการแข่งขัน 10 สัปดาห์</h2>
+        <h2>ผลการแข่งขัน 8 สัปดาห์</h2>
 
         <div className="scoreboard-list">
           {scores.map((score, idx) => (
@@ -29,8 +29,11 @@ function Scoreboard({ gameState, playerId }) {
                 <div className="score-breakdown">
                   <div className="score-item">💰 เงินสด: ฿{score.cash.toLocaleString()}</div>
                   <div className="score-item">📦 มูลค่าสินค้าคงเหลือ: ฿{score.inventoryValue.toLocaleString()}</div>
+                  {score.inTransitValue > 0 && (
+                    <div className="score-item">🚚 สินค้าระหว่างทาง: ฿{score.inTransitValue.toLocaleString()}</div>
+                  )}
                   {score.unfulfilledPenalty > 0 && (
-                    <div className="score-item negative">⚠️ ค่าปรับออเดอร์ค้าง: -฿{score.unfulfilledPenalty.toLocaleString()}</div>
+                    <div className="score-item negative">⚠️ ค่าปรับออเดอร์เลยกำหนด: -฿{score.unfulfilledPenalty.toLocaleString()}</div>
                   )}
                 </div>
                 <div className="score-stats">
