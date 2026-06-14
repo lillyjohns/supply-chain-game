@@ -252,6 +252,7 @@ function passOrderSelection(game, playerId) {
   game.passCount++;
   
   if (game.passCount >= game.playerOrder.length || game.availableOrders.length === 0) {
+    resolveInstantOrders(game);
     game.phase = PHASES.PURCHASING;
     return { success: true, phaseComplete: true };
   }
@@ -264,7 +265,47 @@ function advanceOrderSelection(game) {
   game.orderSelectionIndex = (game.orderSelectionIndex + 1) % game.playerOrder.length;
   
   if (game.availableOrders.length === 0) {
+    resolveInstantOrders(game);
     game.phase = PHASES.PURCHASING;
+  }
+}
+
+// Resolve instant orders (lead time 0) immediately after order selection
+function resolveInstantOrders(game) {
+  const instantLog = [];
+  
+  for (const playerId of game.playerOrder) {
+    const player = game.players[playerId];
+    const instantOrders = player.activeOrders.filter(o => o.isInstant && o.dueTurn === game.currentTurn);
+    const remainingOrders = player.activeOrders.filter(o => !(o.isInstant && o.dueTurn === game.currentTurn));
+    
+    for (const order of instantOrders) {
+      const result = calculateDelivery(order, player.warehouse, game.currentTurn, game.turnModifiers);
+      
+      // Remove delivered items from warehouse
+      for (const item of result.deliveredItems) {
+        player.warehouse[item.color] -= item.quantity;
+      }
+      
+      player.cash += result.netPayment;
+      player.totalRevenue += Math.max(0, result.netPayment);
+      player.totalPenalties += result.latePenalty + result.incompletePenalty;
+      player.completedOrders.push({ ...order, result });
+      
+      instantLog.push({
+        playerId,
+        playerName: player.name,
+        order,
+        result
+      });
+    }
+    
+    player.activeOrders = remainingOrders;
+  }
+  
+  // Store instant resolution log for frontend display
+  if (instantLog.length > 0) {
+    game.instantResolutionLog = instantLog;
   }
 }
 
@@ -374,10 +415,10 @@ function endGame(game) {
       inventoryValue += (player.warehouse[color] || 0) * GOODS[color].basePrice * INVENTORY_VALUE_MULTIPLIER;
     }
     
-    // In-transit shipments also count at 100% base price
+    // In-transit shipments also count at 90% base price
     let inTransitValue = 0;
     for (const shipment of player.pendingShipments) {
-      inTransitValue += shipment.quantity * GOODS[shipment.color].basePrice;
+      inTransitValue += shipment.quantity * GOODS[shipment.color].basePrice * INVENTORY_VALUE_MULTIPLIER;
     }
     
     // Only penalize OVERDUE orders (dueTurn <= currentTurn)
@@ -428,6 +469,7 @@ function getGameState(game, playerId) {
     players: {},
     scores: game.scores || null,
     resolutionLog: game.resolutionLog || null,
+    instantResolutionLog: game.instantResolutionLog || null,
     allPurchasesSubmitted: game.playerOrder.every(id => game.purchaseSubmitted[id] !== undefined)
   };
 

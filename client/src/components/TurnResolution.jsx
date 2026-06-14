@@ -107,6 +107,18 @@ function TurnResolution({ gameState, playerId, socket, goodsInfo }) {
                         {!d.isComplete && <span className="incomplete-badge">❌ ส่งไม่ครบ</span>}
                       </div>
                       
+                      {/* Show missing items */}
+                      {d.missingItems && d.missingItems.length > 0 && (
+                        <div className="missing-items">
+                          ❌ ขาด: {d.missingItems.map((item, j) => (
+                            <span key={j} className="missing-item-badge">
+                              <span style={{ color: goodsInfo[item.color]?.color }}>{goodsInfo[item.color]?.symbol}</span>
+                              {' '}{goodsInfo[item.color]?.name} x{item.quantity}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      
                       {/* Calculation breakdown */}
                       <div className="delivery-calc">
                         <div className="calc-row positive">

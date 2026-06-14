@@ -28,7 +28,7 @@ function Scoreboard({ gameState, playerId }) {
                 </div>
                 <div className="score-breakdown">
                   <div className="score-item">💰 เงินสด: ฿{score.cash.toLocaleString()}</div>
-                  <div className="score-item">📦 มูลค่าสินค้าคงเหลือ: ฿{score.inventoryValue.toLocaleString()}</div>
+                  <div className="score-item">📦 มูลค่าสินค้าคงเหลือ (90%): +฿{score.inventoryValue.toLocaleString()}</div>
                   {score.inTransitValue > 0 && (
                     <div className="score-item">🚚 สินค้าระหว่างทาง: ฿{score.inTransitValue.toLocaleString()}</div>
                   )}

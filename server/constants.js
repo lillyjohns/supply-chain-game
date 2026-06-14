@@ -46,7 +46,7 @@ module.exports = {
   OVERFLOW_COST_PER_UNIT: 50,
 
   // End game
-  INVENTORY_VALUE_MULTIPLIER: 1.0,
+  INVENTORY_VALUE_MULTIPLIER: 0.9,
 
   // Orders per turn
   ORDERS_PER_PLAYER_MULTIPLIER: 2.5 // available orders = players * this
