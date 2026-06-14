@@ -27,7 +27,6 @@ const EVENTS = [
     description: 'พายุทำให้การขนส่งทุกสีล่าช้า +1 สัปดาห์',
     type: 'bad',
     effect: (game) => {
-      // All pending shipments get +1 lead time
       for (const player of Object.values(game.players)) {
         for (const shipment of player.pendingShipments) {
           shipment.arriveTurn += 1;
@@ -89,19 +88,6 @@ const EVENTS = [
   },
   {
     id: 9,
-    title: '🟣 สินค้าม่วงล่าช้า',
-    description: 'ซัพพลายเออร์สีม่วงประสบปัญหา ขนส่งล่าช้า +1 สัปดาห์',
-    type: 'bad',
-    effect: (game) => {
-      for (const player of Object.values(game.players)) {
-        for (const shipment of player.pendingShipments) {
-          if (shipment.color === 'purple') shipment.arriveTurn += 1;
-        }
-      }
-    }
-  },
-  {
-    id: 10,
     title: '📦 สินค้าเสียหาย!',
     description: '10% ของสินค้าในคลังเสียหาย (ปัดขึ้น)',
     type: 'bad',
@@ -116,7 +102,7 @@ const EVENTS = [
     }
   },
   {
-    id: 11,
+    id: 10,
     title: '🏠 ค่าเช่าคลังเพิ่ม!',
     description: 'ค่าเช่าคลังสินค้าเพิ่มเป็นสองเท่าในสัปดาห์นี้',
     type: 'bad',
@@ -125,7 +111,7 @@ const EVENTS = [
     }
   },
   {
-    id: 12,
+    id: 11,
     title: '📈 ตลาดขาดแคลน!',
     description: 'ราคาขายทุกสินค้า x2 ในสัปดาห์นี้',
     type: 'good',
@@ -134,7 +120,7 @@ const EVENTS = [
     }
   },
   {
-    id: 13,
+    id: 12,
     title: '🔴📈 สินค้าแดงขาดตลาด',
     description: 'ราคาขายสินค้าแดง x2 ในสัปดาห์นี้',
     type: 'good',
@@ -143,16 +129,16 @@ const EVENTS = [
     }
   },
   {
-    id: 14,
-    title: '🟣📈 สินค้าม่วงขาดตลาด',
-    description: 'ราคาขายสินค้าม่วง x2 ในสัปดาห์นี้',
+    id: 13,
+    title: '🟡📈 สินค้าเหลืองขาดตลาด',
+    description: 'ราคาขายสินค้าเหลือง x2 ในสัปดาห์นี้',
     type: 'good',
     effect: (game) => {
-      game.turnModifiers.colorSellMultiplier = { purple: 2 };
+      game.turnModifiers.colorSellMultiplier = { yellow: 2 };
     }
   },
   {
-    id: 15,
+    id: 14,
     title: '🚛 จัดส่งฟรี!',
     description: 'ไม่เสียค่าขนส่งในสัปดาห์นี้',
     type: 'good',
@@ -161,7 +147,7 @@ const EVENTS = [
     }
   },
   {
-    id: 16,
+    id: 15,
     title: '💰 โบนัสรัฐบาล',
     description: 'ทุกคนได้รับเงินช่วยเหลือ $1,000',
     type: 'good',
@@ -172,7 +158,7 @@ const EVENTS = [
     }
   },
   {
-    id: 17,
+    id: 16,
     title: '💸 ภาษีพิเศษ',
     description: 'ทุกคนจ่ายภาษี $500',
     type: 'bad',
@@ -183,7 +169,7 @@ const EVENTS = [
     }
   },
   {
-    id: 18,
+    id: 17,
     title: '🏭 โรงงานหยุดงาน',
     description: 'ผู้ขายทุกรายหยุดงาน - ไม่สามารถสั่งซื้อได้ในสัปดาห์นี้',
     type: 'bad',
@@ -192,7 +178,7 @@ const EVENTS = [
     }
   },
   {
-    id: 19,
+    id: 18,
     title: '🔥 ไฟไหม้คลัง!',
     description: 'สินค้าสุ่ม 5 ชิ้นในคลังถูกทำลาย',
     type: 'bad',
@@ -213,7 +199,7 @@ const EVENTS = [
     }
   },
   {
-    id: 20,
+    id: 19,
     title: '📦 คลังขยาย!',
     description: 'ความจุคลังเพิ่ม +10 หน่วยในสัปดาห์นี้',
     type: 'good',
@@ -222,7 +208,7 @@ const EVENTS = [
     }
   },
   {
-    id: 21,
+    id: 20,
     title: '🎁 สินค้าฟรี!',
     description: 'ทุกคนได้รับสินค้าสุ่ม 3 ชิ้นฟรี',
     type: 'good',
@@ -237,7 +223,7 @@ const EVENTS = [
     }
   },
   {
-    id: 22,
+    id: 21,
     title: '📉 ราคาตก',
     description: 'ต้นทุนซื้อสินค้าลด 20% ในสัปดาห์นี้',
     type: 'good',
@@ -246,7 +232,7 @@ const EVENTS = [
     }
   },
   {
-    id: 23,
+    id: 22,
     title: '📈 ต้นทุนพุ่ง',
     description: 'ต้นทุนซื้อสินค้าเพิ่ม 30% ในสัปดาห์นี้',
     type: 'bad',
@@ -255,7 +241,7 @@ const EVENTS = [
     }
   },
   {
-    id: 24,
+    id: 23,
     title: '⚡ จัดส่งด่วน!',
     description: 'สินค้าที่สั่งสัปดาห์นี้มาถึงเร็วขึ้น 1 สัปดาห์',
     type: 'good',
@@ -264,7 +250,7 @@ const EVENTS = [
     }
   },
   {
-    id: 25,
+    id: 24,
     title: '🌊 น้ำท่วม',
     description: 'สินค้าที่ระดับล่างของคลังเสียหาย (สูญเสีย 20% สินค้าแดงและน้ำเงิน)',
     type: 'bad',
@@ -276,7 +262,7 @@ const EVENTS = [
     }
   },
   {
-    id: 26,
+    id: 25,
     title: '🎉 เทศกาลลดราคา',
     description: 'ลูกค้ายินดีจ่ายเพิ่ม 50% สำหรับทุกออเดอร์ที่ส่งสัปดาห์นี้',
     type: 'good',
@@ -285,7 +271,7 @@ const EVENTS = [
     }
   },
   {
-    id: 27,
+    id: 26,
     title: '🔒 คลังรั่ว',
     description: 'สินค้าสุ่ม 2 ชิ้นหายไปจากคลังของทุกคน',
     type: 'bad',
@@ -306,7 +292,7 @@ const EVENTS = [
     }
   },
   {
-    id: 28,
+    id: 27,
     title: '📋 ดีมานด์สูง!',
     description: 'ออเดอร์เพิ่มขึ้น 2 เท่าในสัปดาห์หน้า',
     type: 'good',
@@ -315,7 +301,7 @@ const EVENTS = [
     }
   },
   {
-    id: 29,
+    id: 28,
     title: '🏆 รางวัลธุรกิจ',
     description: 'ผู้เล่นที่มีเงินมากสุดได้โบนัส $500',
     type: 'neutral',
@@ -326,17 +312,39 @@ const EVENTS = [
     }
   },
   {
-    id: 30,
+    id: 29,
     title: '🤝 ข้อตกลงพิเศษ',
     description: 'ส่วนลดจำนวนมาก x2 ในสัปดาห์นี้ (ส่วนลดเพิ่มเป็นสองเท่า)',
     type: 'good',
     effect: (game) => {
       game.turnModifiers.doubleBulkDiscount = true;
     }
+  },
+  {
+    id: 30,
+    title: '🟢📈 สินค้าเขียวขาดตลาด',
+    description: 'ราคาขายสินค้าเขียว x2 ในสัปดาห์นี้',
+    type: 'good',
+    effect: (game) => {
+      game.turnModifiers.colorSellMultiplier = { green: 2 };
+    }
   }
 ];
 
-function getRandomEvent() {
+// No-event placeholder for turns 1-2
+const NO_EVENT = {
+  id: 0,
+  title: 'ไม่มีอะไรเกิดขึ้น',
+  description: 'สัปดาห์แรกๆ ธุรกิจดำเนินไปตามปกติ',
+  type: 'neutral',
+  effect: (game) => {}
+};
+
+function getRandomEvent(turnNumber) {
+  // No events in turn 1 and 2
+  if (turnNumber <= 2) {
+    return NO_EVENT;
+  }
   return EVENTS[Math.floor(Math.random() * EVENTS.length)];
 }
 

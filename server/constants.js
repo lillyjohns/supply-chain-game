@@ -1,23 +1,22 @@
 // Game Constants
 module.exports = {
   // Game settings
-  MAX_TURNS: 10,
+  MAX_TURNS: 8,
   MIN_PLAYERS: 2,
   MAX_PLAYERS: 4,
   STARTING_CASH: 10000,
   WAREHOUSE_CAPACITY: 50,
   STARTING_INVENTORY: 5, // per color
 
-  // Goods
+  // Goods (4 colors with distinct symbols)
   GOODS: {
-    red: { name: 'แดง', basePrice: 100, vendorLeadTime: 1, color: '#EF4444' },
-    blue: { name: 'น้ำเงิน', basePrice: 150, vendorLeadTime: 1, color: '#3B82F6' },
-    green: { name: 'เขียว', basePrice: 200, vendorLeadTime: 2, color: '#10B981' },
-    yellow: { name: 'เหลือง', basePrice: 300, vendorLeadTime: 2, color: '#F59E0B' },
-    purple: { name: 'ม่วง', basePrice: 500, vendorLeadTime: 3, color: '#8B5CF6' }
+    red: { name: 'แดง', basePrice: 100, vendorLeadTime: 1, color: '#EF4444', symbol: '■' },
+    blue: { name: 'น้ำเงิน', basePrice: 150, vendorLeadTime: 1, color: '#3B82F6', symbol: '▲' },
+    green: { name: 'เขียว', basePrice: 200, vendorLeadTime: 2, color: '#10B981', symbol: '●' },
+    yellow: { name: 'เหลือง', basePrice: 300, vendorLeadTime: 2, color: '#F59E0B', symbol: '◆' }
   },
 
-  GOOD_COLORS: ['red', 'blue', 'green', 'yellow', 'purple'],
+  GOOD_COLORS: ['red', 'blue', 'green', 'yellow'],
 
   // Pricing
   BULK_DISCOUNTS: [

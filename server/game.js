@@ -6,13 +6,13 @@ const {
 const { getRandomEvent } = require('./events');
 const { generateOrder, getVendorPrice, calculateDelivery } = require('./pricing');
 
-// Game phases
+// Game phases - NEW ORDER: resolution → event → order_selection → purchasing
 const PHASES = {
   LOBBY: 'lobby',
+  RESOLUTION: 'resolution',
   EVENT: 'event',
   ORDER_SELECTION: 'order_selection',
   PURCHASING: 'purchasing',
-  RESOLUTION: 'resolution',
   GAME_OVER: 'game_over'
 };
 
@@ -27,10 +27,11 @@ function createGame(roomCode, hostId) {
     availableOrders: [],
     currentEvent: null,
     turnModifiers: {},
-    orderSelectionIndex: 0, // whose turn to pick
-    passCount: 0, // how many players passed in a row
-    purchaseSubmitted: {}, // track who submitted purchases
+    orderSelectionIndex: 0,
+    passCount: 0,
+    purchaseSubmitted: {},
     doubleOrdersNextTurn: false,
+    resolutionLog: null,
     log: []
   };
 }
@@ -49,8 +50,8 @@ function addPlayer(game, playerId, playerName) {
     name: playerName,
     cash: STARTING_CASH,
     warehouse,
-    activeOrders: [], // orders player has claimed
-    pendingShipments: [], // orders from vendor in transit
+    activeOrders: [],
+    pendingShipments: [],
     completedOrders: [],
     totalRevenue: 0,
     totalCosts: 0,
@@ -68,18 +69,121 @@ function removePlayer(game, playerId) {
 function startGame(game) {
   if (Object.keys(game.players).length < 2) return false;
   game.currentTurn = 1;
-  startTurn(game);
+  // Turn 1: skip resolution (nothing to resolve), go straight to event
+  startTurnEvent(game);
   return true;
 }
 
-function startTurn(game) {
-  // Reset turn modifiers
+// Phase 1: Resolution (arrivals + overflow + deliveries)
+function startTurnResolution(game) {
   game.turnModifiers = {};
   game.purchaseSubmitted = {};
   game.passCount = 0;
-  
-  // Draw event
-  const event = getRandomEvent();
+  game.resolutionLog = null;
+
+  const resolutionLog = [];
+  let hasActivity = false;
+
+  for (const playerId of game.playerOrder) {
+    const player = game.players[playerId];
+    const playerLog = { 
+      playerId, 
+      playerName: player.name, 
+      arrivals: [], 
+      deliveries: [], 
+      overflow: 0,
+      cashBefore: player.cash,
+      cashAfter: player.cash
+    };
+
+    // 1.1 Receive goods from vendor that arrive this turn
+    const arriving = player.pendingShipments.filter(s => s.arriveTurn <= game.currentTurn);
+    player.pendingShipments = player.pendingShipments.filter(s => s.arriveTurn > game.currentTurn);
+    
+    for (const shipment of arriving) {
+      player.warehouse[shipment.color] = (player.warehouse[shipment.color] || 0) + shipment.quantity;
+      playerLog.arrivals.push({ color: shipment.color, quantity: shipment.quantity });
+      hasActivity = true;
+    }
+
+    // 1.2 Check warehouse overflow - charge rent immediately
+    const totalUnits = Object.values(player.warehouse).reduce((a, b) => a + b, 0);
+    const capacity = WAREHOUSE_CAPACITY;
+    if (totalUnits > capacity) {
+      const overflow = totalUnits - capacity;
+      const overflowCost = overflow * OVERFLOW_COST_PER_UNIT;
+      player.cash -= overflowCost;
+      player.totalCosts += overflowCost;
+      playerLog.overflow = { units: overflow, cost: overflowCost };
+      hasActivity = true;
+    }
+
+    // 1.3 Sell goods to customers - process each due order one by one with detailed calc
+    const dueOrders = player.activeOrders.filter(o => o.dueTurn <= game.currentTurn);
+    const remainingOrders = player.activeOrders.filter(o => o.dueTurn > game.currentTurn);
+    
+    for (const order of dueOrders) {
+      const result = calculateDelivery(order, player.warehouse, game.currentTurn, game.turnModifiers);
+      
+      // Calculate cost of goods delivered (base price * quantity + proportional shipping)
+      let costOfGoods = 0;
+      for (const item of result.deliveredItems) {
+        costOfGoods += GOODS[item.color].basePrice * item.quantity;
+      }
+      // Add proportional shipping cost
+      if (result.deliveredItems.length > 0) {
+        costOfGoods += SHIPPING_COST; // flat shipping per original order
+      }
+      
+      // Remove delivered items from warehouse
+      for (const item of result.deliveredItems) {
+        player.warehouse[item.color] -= item.quantity;
+      }
+      
+      player.cash += result.netPayment;
+      player.totalRevenue += Math.max(0, result.netPayment);
+      player.totalPenalties += result.latePenalty + result.incompletePenalty;
+      
+      player.completedOrders.push({ ...order, result });
+      
+      // Detailed per-order calculation
+      const netProfit = result.netPayment - costOfGoods;
+      playerLog.deliveries.push({
+        orderId: order.id,
+        items: order.items,
+        revenue: result.payment,
+        costOfGoods,
+        latePenalty: result.latePenalty,
+        incompletePenalty: result.incompletePenalty,
+        turnsLate: result.turnsLate,
+        netPayment: result.netPayment,
+        netProfit,
+        deliveredItems: result.deliveredItems,
+        missingItems: result.missingItems,
+        isComplete: result.isComplete
+      });
+      hasActivity = true;
+    }
+    
+    player.activeOrders = remainingOrders;
+    playerLog.cashAfter = player.cash;
+    resolutionLog.push(playerLog);
+  }
+
+  game.resolutionLog = resolutionLog;
+
+  // If turn 1, skip resolution display (nothing to show)
+  if (game.currentTurn === 1 || !hasActivity) {
+    startTurnEvent(game);
+  } else {
+    game.phase = PHASES.RESOLUTION;
+  }
+}
+
+// Phase 2: Event
+function startTurnEvent(game) {
+  // Draw event (no events in turn 1-2)
+  const event = getRandomEvent(game.currentTurn);
   game.currentEvent = {
     id: event.id,
     title: event.title,
@@ -90,6 +194,11 @@ function startTurn(game) {
   // Apply event effect
   event.effect(game);
   
+  game.phase = PHASES.EVENT;
+}
+
+// Phase 3: Order Selection
+function moveToOrderSelection(game) {
   // Check for doubled orders from last turn's event
   let orderMultiplier = ORDERS_PER_PLAYER_MULTIPLIER;
   if (game.doubleOrdersNextTurn) {
@@ -109,14 +218,8 @@ function startTurn(game) {
     game.availableOrders.push(generateOrder(game.currentTurn, game.turnModifiers));
   }
   
-  // Set phase to event reveal
-  game.phase = PHASES.EVENT;
-  game.orderSelectionIndex = 0;
-}
-
-function moveToOrderSelection(game) {
   game.phase = PHASES.ORDER_SELECTION;
-  game.orderSelectionIndex = (game.currentTurn - 1) % game.playerOrder.length; // rotate starting player
+  game.orderSelectionIndex = (game.currentTurn - 1) % game.playerOrder.length;
   game.passCount = 0;
 }
 
@@ -148,7 +251,6 @@ function passOrderSelection(game, playerId) {
   
   game.passCount++;
   
-  // If all players passed, move to purchasing
   if (game.passCount >= game.playerOrder.length || game.availableOrders.length === 0) {
     game.phase = PHASES.PURCHASING;
     return { success: true, phaseComplete: true };
@@ -161,18 +263,16 @@ function passOrderSelection(game, playerId) {
 function advanceOrderSelection(game) {
   game.orderSelectionIndex = (game.orderSelectionIndex + 1) % game.playerOrder.length;
   
-  // If no orders left, move to purchasing
   if (game.availableOrders.length === 0) {
     game.phase = PHASES.PURCHASING;
   }
 }
 
+// Phase 4: Purchasing
 function submitPurchases(game, playerId, purchases) {
-  // purchases: [{ color, quantity }]
   if (game.phase !== PHASES.PURCHASING) return { success: false, error: 'ไม่ใช่เฟสสั่งซื้อ' };
   if (game.purchaseSubmitted[playerId]) return { success: false, error: 'คุณสั่งซื้อไปแล้ว' };
   
-  // Vendor strike event
   if (game.turnModifiers.vendorStrike) {
     game.purchaseSubmitted[playerId] = [];
     checkAllPurchasesSubmitted(game);
@@ -203,7 +303,6 @@ function submitPurchases(game, playerId, purchases) {
     return { success: false, error: `เงินไม่พอ! ต้องการ $${totalCost} แต่มี $${player.cash}` };
   }
 
-  // Deduct cash and create shipments
   player.cash -= totalCost;
   player.totalCosts += totalCost;
 
@@ -236,103 +335,44 @@ function skipPurchase(game, playerId) {
 function checkAllPurchasesSubmitted(game) {
   const allSubmitted = game.playerOrder.every(id => game.purchaseSubmitted[id] !== undefined);
   if (allSubmitted) {
-    resolveDeliveries(game);
-  }
-}
-
-function resolveDeliveries(game) {
-  game.phase = PHASES.RESOLUTION;
-  const resolutionLog = [];
-
-  for (const playerId of game.playerOrder) {
-    const player = game.players[playerId];
-    const playerLog = { playerId, playerName: player.name, arrivals: [], deliveries: [], overflow: 0 };
-
-    // 1. Check arriving shipments
-    const arriving = player.pendingShipments.filter(s => s.arriveTurn <= game.currentTurn);
-    player.pendingShipments = player.pendingShipments.filter(s => s.arriveTurn > game.currentTurn);
-    
-    for (const shipment of arriving) {
-      player.warehouse[shipment.color] = (player.warehouse[shipment.color] || 0) + shipment.quantity;
-      playerLog.arrivals.push({ color: shipment.color, quantity: shipment.quantity });
+    // All purchases done — check if game over
+    if (game.currentTurn >= MAX_TURNS) {
+      endGame(game);
     }
-
-    // 2. Check warehouse overflow
-    const totalUnits = Object.values(player.warehouse).reduce((a, b) => a + b, 0);
-    const capacity = WAREHOUSE_CAPACITY + (game.turnModifiers.bonusCapacity || 0);
-    if (totalUnits > capacity) {
-      const overflow = totalUnits - capacity;
-      const overflowRate = OVERFLOW_COST_PER_UNIT * (game.turnModifiers.warehouseOverflowMultiplier || 1);
-      const overflowCost = overflow * overflowRate;
-      player.cash -= overflowCost;
-      player.totalCosts += overflowCost;
-      playerLog.overflow = { units: overflow, cost: overflowCost };
-    }
-
-    // 3. Fulfill due orders
-    const dueOrders = player.activeOrders.filter(o => o.dueTurn <= game.currentTurn);
-    const remainingOrders = player.activeOrders.filter(o => o.dueTurn > game.currentTurn);
-    
-    for (const order of dueOrders) {
-      const result = calculateDelivery(order, player.warehouse, game.currentTurn, game.turnModifiers);
-      
-      // Remove delivered items from warehouse
-      for (const item of result.deliveredItems) {
-        player.warehouse[item.color] -= item.quantity;
-      }
-      
-      player.cash += result.netPayment;
-      player.totalRevenue += Math.max(0, result.netPayment);
-      player.totalPenalties += result.latePenalty + result.incompletePenalty;
-      
-      player.completedOrders.push({
-        ...order,
-        result
-      });
-      
-      playerLog.deliveries.push({
-        orderId: order.id,
-        ...result
-      });
-    }
-    
-    player.activeOrders = remainingOrders;
-    resolutionLog.push(playerLog);
-  }
-
-  game.resolutionLog = resolutionLog;
-  
-  // Check if game is over
-  if (game.currentTurn >= MAX_TURNS) {
-    endGame(game);
+    // Otherwise wait for next_turn to advance
   }
 }
 
 function nextTurn(game) {
   if (game.phase === PHASES.GAME_OVER) return;
+  
+  // If we just finished resolution phase, move to event
+  if (game.phase === PHASES.RESOLUTION) {
+    startTurnEvent(game);
+    return;
+  }
+  
+  // Otherwise, advance turn number and start resolution of new turn
   game.currentTurn++;
   if (game.currentTurn > MAX_TURNS) {
     endGame(game);
   } else {
-    startTurn(game);
+    startTurnResolution(game);
   }
 }
 
 function endGame(game) {
   game.phase = PHASES.GAME_OVER;
   
-  // Calculate final scores
   const scores = [];
   for (const playerId of game.playerOrder) {
     const player = game.players[playerId];
     
-    // Remaining inventory value at 50%
     let inventoryValue = 0;
     for (const color of GOOD_COLORS) {
       inventoryValue += (player.warehouse[color] || 0) * GOODS[color].basePrice * INVENTORY_VALUE_MULTIPLIER;
     }
     
-    // Penalty for unfulfilled orders (they just expire)
     let unfulfilledPenalty = 0;
     for (const order of player.activeOrders) {
       for (const item of order.items) {
@@ -361,7 +401,6 @@ function endGame(game) {
 }
 
 function getGameState(game, playerId) {
-  // Return game state visible to a specific player
   const state = {
     roomCode: game.roomCode,
     phase: game.phase,
@@ -374,10 +413,10 @@ function getGameState(game, playerId) {
     turnModifiers: game.turnModifiers,
     players: {},
     scores: game.scores || null,
-    resolutionLog: game.resolutionLog || null
+    resolutionLog: game.resolutionLog || null,
+    allPurchasesSubmitted: game.playerOrder.every(id => game.purchaseSubmitted[id] !== undefined)
   };
 
-  // Include all player info (simplified)
   for (const pid of game.playerOrder) {
     const p = game.players[pid];
     state.players[pid] = {
@@ -401,12 +440,13 @@ module.exports = {
   addPlayer,
   removePlayer,
   startGame,
+  startTurnResolution,
+  startTurnEvent,
   moveToOrderSelection,
   claimOrder,
   passOrderSelection,
   submitPurchases,
   skipPurchase,
-  resolveDeliveries,
   nextTurn,
   getGameState
 };

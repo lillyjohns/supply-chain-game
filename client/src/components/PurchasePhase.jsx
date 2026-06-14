@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 
-const VENDOR_LEAD_TIMES = { red: 1, blue: 1, green: 2, yellow: 2, purple: 3 };
-const BASE_PRICES = { red: 100, blue: 150, green: 200, yellow: 300, purple: 500 };
+const VENDOR_LEAD_TIMES = { red: 1, blue: 1, green: 2, yellow: 2 };
+const BASE_PRICES = { red: 100, blue: 150, green: 200, yellow: 300 };
 
 function PurchasePhase({ gameState, playerId, socket, goodsInfo }) {
-  const [quantities, setQuantities] = useState({ red: 0, blue: 0, green: 0, yellow: 0, purple: 0 });
+  const [quantities, setQuantities] = useState({ red: 0, blue: 0, green: 0, yellow: 0 });
   const [quotes, setQuotes] = useState({});
   const [submitted, setSubmitted] = useState(false);
   const [totalCost, setTotalCost] = useState(0);
@@ -75,22 +75,30 @@ function PurchasePhase({ gameState, playerId, socket, goodsInfo }) {
     );
   }
 
-  if (submitted) {
+  if (submitted || gameState.allPurchasesSubmitted) {
+    const allDone = gameState.allPurchasesSubmitted;
+    const isHost = gameState.playerOrder[0] === playerId;
+    
+    const handleNextTurn = () => {
+      socket.emit('next_turn');
+    };
+
     return (
       <div className="purchase-phase">
         <div className="phase-header">
           <h2>🛒 สั่งซื้อจากผู้ขาย</h2>
         </div>
         <div className="submitted-notice">
-          <h3>✅ ส่งคำสั่งซื้อแล้ว!</h3>
-          <p>รอผู้เล่นคนอื่น...</p>
-          <div className="submitted-players">
-            {gameState.playerOrder.map(pid => (
-              <div key={pid} className="submitted-player">
-                {gameState.players[pid]?.name}: {gameState.purchaseSubmitted?.[pid] !== undefined ? '✅' : '⏳'}
-              </div>
-            ))}
-          </div>
+          <h3>✅ {allDone ? 'ทุกคนสั่งซื้อเรียบร้อยแล้ว!' : 'ส่งคำสั่งซื้อแล้ว!'}</h3>
+          {!allDone && <p>รอผู้เล่นคนอื่น...</p>}
+          {allDone && isHost && (
+            <button className="btn btn-primary btn-large" onClick={handleNextTurn} style={{marginTop: '16px'}}>
+              {gameState.currentTurn >= gameState.maxTurns ? '🏁 จบเกม' : '➡️ สัปดาห์ถัดไป'}
+            </button>
+          )}
+          {allDone && !isHost && (
+            <p className="waiting-host">รอเจ้าห้องเริ่มรอบถัดไป...</p>
+          )}
         </div>
       </div>
     );

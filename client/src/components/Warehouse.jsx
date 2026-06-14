@@ -22,7 +22,7 @@ function Warehouse({ player, goodsInfo }) {
       <div className="warehouse-grid">
         {Object.entries(goodsInfo).map(([color, info]) => (
           <div key={color} className="warehouse-item">
-            <span className="warehouse-item-emoji">{info.emoji}</span>
+            <span className="warehouse-item-symbol" style={{ color: info.color }}>{info.symbol}</span>
             <span className="warehouse-item-name">{info.name}</span>
             <span className="warehouse-item-qty">{player.warehouse[color] || 0}</span>
             <div className="warehouse-item-bar">

@@ -7,11 +7,10 @@ import EventCard from './EventCard';
 import Scoreboard from './Scoreboard';
 
 const GOODS_INFO = {
-  red: { name: 'แดง', color: '#EF4444', emoji: '🔴' },
-  blue: { name: 'น้ำเงิน', color: '#3B82F6', emoji: '🔵' },
-  green: { name: 'เขียว', color: '#10B981', emoji: '🟢' },
-  yellow: { name: 'เหลือง', color: '#F59E0B', emoji: '🟡' },
-  purple: { name: 'ม่วง', color: '#8B5CF6', emoji: '🟣' }
+  red: { name: 'แดง', color: '#EF4444', symbol: '■', emoji: '■' },
+  blue: { name: 'น้ำเงิน', color: '#3B82F6', symbol: '▲', emoji: '▲' },
+  green: { name: 'เขียว', color: '#10B981', symbol: '●', emoji: '●' },
+  yellow: { name: 'เหลือง', color: '#F59E0B', symbol: '◆', emoji: '◆' }
 };
 
 function GameBoard({ gameState, playerId, socket }) {
@@ -31,10 +30,10 @@ function GameBoard({ gameState, playerId, socket }) {
         <div className="header-left">
           <span className="turn-badge">สัปดาห์ {gameState.currentTurn}/{gameState.maxTurns}</span>
           <span className="phase-badge">
+            {phase === 'resolution' && '📦 สรุปรอบ'}
             {phase === 'event' && '🎲 เหตุการณ์'}
             {phase === 'order_selection' && '📋 เลือกออเดอร์'}
             {phase === 'purchasing' && '🛒 สั่งซื้อ'}
-            {phase === 'resolution' && '📦 สรุปรอบ'}
           </span>
         </div>
         <div className="header-right">
@@ -104,6 +103,15 @@ function GameBoard({ gameState, playerId, socket }) {
 
         {/* Right: Phase Content */}
         <div className="game-main">
+          {phase === 'resolution' && (
+            <TurnResolution
+              gameState={gameState}
+              playerId={playerId}
+              socket={socket}
+              goodsInfo={GOODS_INFO}
+            />
+          )}
+
           {phase === 'event' && (
             <EventCard 
               event={gameState.currentEvent} 
@@ -123,15 +131,6 @@ function GameBoard({ gameState, playerId, socket }) {
           
           {phase === 'purchasing' && (
             <PurchasePhase
-              gameState={gameState}
-              playerId={playerId}
-              socket={socket}
-              goodsInfo={GOODS_INFO}
-            />
-          )}
-          
-          {phase === 'resolution' && (
-            <TurnResolution
               gameState={gameState}
               playerId={playerId}
               socket={socket}

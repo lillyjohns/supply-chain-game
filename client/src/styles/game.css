@@ -774,6 +774,108 @@ body {
   text-align: center;
 }
 
+/* Delivery Detail Card */
+.delivery-detail-card {
+  background: var(--bg);
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 8px;
+  border-left: 3px solid var(--primary);
+}
+.delivery-items {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.delivery-item-badge {
+  font-size: 13px;
+  padding: 2px 8px;
+  background: var(--bg-card);
+  border-radius: 4px;
+}
+.incomplete-badge {
+  font-size: 11px;
+  color: var(--danger);
+  padding: 2px 8px;
+  background: rgba(239, 68, 68, 0.1);
+  border-radius: 4px;
+}
+.delivery-calc {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+}
+.calc-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 3px 0;
+}
+.calc-row.total {
+  border-top: 1px solid var(--border);
+  padding-top: 6px;
+  margin-top: 4px;
+}
+.money-green { color: var(--success); font-weight: 600; }
+.money-red { color: var(--danger); font-weight: 600; }
+.money-muted { color: var(--text-muted); }
+.money-big { font-size: 20px; font-weight: 700; color: var(--warning); }
+
+.delivery-summary {
+  margin-top: 12px;
+  padding: 12px;
+  background: rgba(37, 99, 235, 0.1);
+  border: 1px solid var(--primary);
+  border-radius: 8px;
+  text-align: center;
+}
+.summary-cash {
+  font-size: 16px;
+}
+
+/* Goods Symbol */
+.goods-symbol {
+  font-size: 16px;
+  font-weight: bold;
+}
+.warehouse-item-symbol {
+  font-size: 18px;
+  font-weight: bold;
+}
+
+/* Animations */
+@keyframes slideIn {
+  from { transform: translateX(-20px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+@keyframes popIn {
+  0% { transform: scale(0.8); opacity: 0; }
+  70% { transform: scale(1.05); }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-4px); }
+  40% { transform: translateX(4px); }
+  60% { transform: translateX(-2px); }
+  80% { transform: translateX(2px); }
+}
+
+.anim-slide-in {
+  animation: slideIn 0.4s ease-out;
+}
+.anim-pop {
+  animation: popIn 0.5s ease-out;
+}
+.anim-shake {
+  animation: shake 0.5s ease-in-out;
+}
+.arrival-item {
+  border-left: 3px solid var(--success);
+}
+
 /* Scoreboard */
 .scoreboard-screen {
   min-height: 100vh;
