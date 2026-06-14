@@ -244,6 +244,25 @@ body {
   margin-top: 16px;
 }
 
+.lobby-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.bot-controls {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+.player-item.is-bot {
+  border: 1px dashed var(--secondary);
+  opacity: 0.85;
+}
+.bot-badge {
+  font-size: 12px;
+  margin-left: auto;
+}
+
 /* Game Board */
 .game-board {
   min-height: 100vh;

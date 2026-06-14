@@ -441,7 +441,8 @@ function getGameState(game, playerId) {
       warehouseTotal: Object.values(p.warehouse).reduce((a, b) => a + b, 0),
       activeOrders: p.activeOrders,
       pendingShipments: p.pendingShipments,
-      completedOrdersCount: p.completedOrders.length
+      completedOrdersCount: p.completedOrders.length,
+      isBot: p.isBot || false
     };
   }
 

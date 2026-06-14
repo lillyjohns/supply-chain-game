@@ -11,6 +11,7 @@ const {
   startTurnResolution, startTurnEvent
 } = require('./game');
 const { getVendorPrice } = require('./pricing');
+const { createBot, botPickOrders, botDecidePurchases } = require('./bot');
 const { GOODS, GOOD_COLORS, BULK_DISCOUNTS, SHIPPING_COST, WAREHOUSE_CAPACITY } = require('./constants');
 
 const app = express();
@@ -36,6 +37,57 @@ function generateRoomCode() {
     code += chars[Math.floor(Math.random() * chars.length)];
   }
   return code;
+}
+
+// Bot auto-play logic
+function processBotTurns(game, roomCode) {
+  // Small delay to feel natural
+  setTimeout(() => {
+    _processBotTurnsSync(game, roomCode);
+  }, 500);
+}
+
+function _processBotTurnsSync(game, roomCode) {
+  if (!game || game.phase === PHASES.GAME_OVER || game.phase === PHASES.LOBBY) return;
+  
+  // Phase: ORDER_SELECTION - if current picker is a bot, auto-pick
+  if (game.phase === PHASES.ORDER_SELECTION) {
+    const currentPicker = game.playerOrder[game.orderSelectionIndex];
+    if (currentPicker && currentPicker.startsWith('bot_')) {
+      const player = game.players[currentPicker];
+      const picked = botPickOrders(player, game.availableOrders, player.strategy);
+      
+      if (picked.length > 0) {
+        // Claim first picked order
+        claimOrder(game, currentPicker, picked[0].id);
+      } else {
+        // Pass
+        passOrderSelection(game, currentPicker);
+      }
+      
+      io.to(roomCode).emit('game_state', getGameState(game, null));
+      // Continue processing (next bot might also need to pick)
+      setTimeout(() => _processBotTurnsSync(game, roomCode), 600);
+      return;
+    }
+  }
+  
+  // Phase: PURCHASING - bots auto-submit purchases
+  if (game.phase === PHASES.PURCHASING) {
+    const botsNeedPurchase = game.playerOrder.filter(
+      id => id.startsWith('bot_') && game.purchaseSubmitted[id] === undefined
+    );
+    
+    for (const botId of botsNeedPurchase) {
+      const player = game.players[botId];
+      const purchases = botDecidePurchases(player, game.turnModifiers, player.strategy);
+      submitPurchases(game, botId, purchases);
+    }
+    
+    if (botsNeedPurchase.length > 0) {
+      io.to(roomCode).emit('game_state', getGameState(game, null));
+    }
+  }
 }
 
 // Socket.IO
@@ -125,6 +177,41 @@ io.on('connection', (socket) => {
     io.to(currentRoom).emit('game_state', getGameState(game, socket.id));
   });
 
+  socket.on('add_bot', (data, callback) => {
+    if (!currentRoom) { callback({ success: false, error: 'ไม่ได้อยู่ในห้อง' }); return; }
+    const game = games[currentRoom];
+    if (!game) { callback({ success: false, error: 'ไม่พบเกม' }); return; }
+    if (game.hostId !== socket.id) { callback({ success: false, error: 'เฉพาะเจ้าห้องเท่านั้น' }); return; }
+    if (game.phase !== PHASES.LOBBY) { callback({ success: false, error: 'เกมเริ่มแล้ว' }); return; }
+    if (Object.keys(game.players).length >= 4) { callback({ success: false, error: 'ห้องเต็ม (สูงสุด 4)' }); return; }
+    
+    const botIndex = Object.keys(game.players).filter(id => id.startsWith('bot_')).length;
+    const bot = createBot(botIndex);
+    addPlayer(game, bot.id, bot.name);
+    game.players[bot.id].isBot = true;
+    game.players[bot.id].strategy = bot.strategy;
+    
+    callback({ success: true, botId: bot.id, botName: bot.name });
+    io.to(currentRoom).emit('game_state', getGameState(game, socket.id));
+  });
+
+  socket.on('remove_bot', (data, callback) => {
+    if (!currentRoom) { callback({ success: false, error: 'ไม่ได้อยู่ในห้อง' }); return; }
+    const game = games[currentRoom];
+    if (!game) { callback({ success: false, error: 'ไม่พบเกม' }); return; }
+    if (game.hostId !== socket.id) { callback({ success: false, error: 'เฉพาะเจ้าห้องเท่านั้น' }); return; }
+    if (game.phase !== PHASES.LOBBY) { callback({ success: false, error: 'เกมเริ่มแล้ว' }); return; }
+    
+    // Remove last bot
+    const bots = game.playerOrder.filter(id => id.startsWith('bot_'));
+    if (bots.length === 0) { callback({ success: false, error: 'ไม่มี bot' }); return; }
+    const lastBot = bots[bots.length - 1];
+    removePlayer(game, lastBot);
+    
+    callback({ success: true });
+    io.to(currentRoom).emit('game_state', getGameState(game, socket.id));
+  });
+
   socket.on('event_acknowledged', () => {
     if (!currentRoom) return;
     const game = games[currentRoom];
@@ -132,6 +219,7 @@ io.on('connection', (socket) => {
     
     moveToOrderSelection(game);
     io.to(currentRoom).emit('game_state', getGameState(game, socket.id));
+    processBotTurns(game, currentRoom);
   });
 
   socket.on('claim_order', (data, callback) => {
@@ -142,6 +230,7 @@ io.on('connection', (socket) => {
     const result = claimOrder(game, socket.id, data.orderId);
     callback(result);
     io.to(currentRoom).emit('game_state', getGameState(game, socket.id));
+    processBotTurns(game, currentRoom);
   });
 
   socket.on('pass_order', (data, callback) => {
@@ -152,6 +241,7 @@ io.on('connection', (socket) => {
     const result = passOrderSelection(game, socket.id);
     callback(result);
     io.to(currentRoom).emit('game_state', getGameState(game, socket.id));
+    processBotTurns(game, currentRoom);
   });
 
   socket.on('submit_purchases', (data, callback) => {
@@ -183,6 +273,8 @@ io.on('connection', (socket) => {
     
     nextTurn(game);
     io.to(currentRoom).emit('game_state', getGameState(game, socket.id));
+    // If phase is purchasing after next_turn (skipped resolution+event), bots need to act
+    processBotTurns(game, currentRoom);
   });
 
   socket.on('get_price_quote', (data, callback) => {
