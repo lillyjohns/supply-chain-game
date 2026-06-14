@@ -78,6 +78,8 @@ function PurchasePhase({ gameState, playerId, socket, goodsInfo }) {
   if (submitted || gameState.allPurchasesSubmitted) {
     const allDone = gameState.allPurchasesSubmitted;
     const isHost = gameState.playerOrder[0] === playerId;
+    const instantLog = gameState.instantResolutionLog || [];
+    const myInstant = instantLog.filter(l => l.playerId === playerId);
     
     const handleNextTurn = () => {
       socket.emit('next_turn');
@@ -88,6 +90,47 @@ function PurchasePhase({ gameState, playerId, socket, goodsInfo }) {
         <div className="phase-header">
           <h2>🛒 สั่งซื้อจากผู้ขาย</h2>
         </div>
+
+        {/* Show instant order results */}
+        {instantLog.length > 0 && (
+          <div className="instant-results">
+            <h3>⚡ สรุป Instant Orders</h3>
+            {instantLog.map((entry, i) => (
+              <div key={i} className={`instant-result-card ${entry.playerId === playerId ? 'is-me' : ''}`}>
+                <div className="instant-result-header">
+                  <strong>{entry.playerName}</strong>
+                  {entry.playerId === playerId && ' (คุณ)'}
+                </div>
+                <div className="instant-result-items">
+                  {entry.order.items.map((item, j) => (
+                    <span key={j} className="delivery-item-badge">
+                      <span style={{ color: goodsInfo[item.color]?.color }}>{goodsInfo[item.color]?.symbol}</span>
+                      {' '}x{item.quantity}
+                    </span>
+                  ))}
+                </div>
+                <div className="instant-result-calc">
+                  <span className="money-green">💰 +฿{entry.result.payment?.toLocaleString()}</span>
+                  {entry.result.incompletePenalty > 0 && (
+                    <span className="money-red"> ปรับ -฿{entry.result.incompletePenalty.toLocaleString()}</span>
+                  )}
+                  <span> → สุทธิ <strong className={entry.result.netPayment >= 0 ? 'money-green' : 'money-red'}>฿{entry.result.netPayment?.toLocaleString()}</strong></span>
+                </div>
+                {entry.result.missingItems?.length > 0 && (
+                  <div className="missing-items">
+                    ❌ ขาด: {entry.result.missingItems.map((item, j) => (
+                      <span key={j} className="missing-item-badge">
+                        <span style={{ color: goodsInfo[item.color]?.color }}>{goodsInfo[item.color]?.symbol}</span>
+                        {' '}{goodsInfo[item.color]?.name} x{item.quantity}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
         <div className="submitted-notice">
           <h3>✅ {allDone ? 'ทุกคนสั่งซื้อเรียบร้อยแล้ว!' : 'ส่งคำสั่งซื้อแล้ว!'}</h3>
           {!allDone && <p>รอผู้เล่นคนอื่น...</p>}

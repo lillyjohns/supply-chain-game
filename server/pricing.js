@@ -77,6 +77,10 @@ function generateOrder(turnNumber, modifiers = {}) {
     return { color, quantity };
   });
 
+  // Sort items by standard color order: red, blue, green, yellow
+  const COLOR_ORDER = { red: 0, blue: 1, green: 2, yellow: 3 };
+  items.sort((a, b) => (COLOR_ORDER[a.color] || 0) - (COLOR_ORDER[b.color] || 0));
+
   // Lead time (0 = instant delivery required this turn)
   const leadTime = ORDER_LEAD_TIME_MIN + Math.floor(Math.random() * (ORDER_LEAD_TIME_MAX - ORDER_LEAD_TIME_MIN + 1));
 

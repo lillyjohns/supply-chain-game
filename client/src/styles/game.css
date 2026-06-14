@@ -788,6 +788,42 @@ body {
 }
 .vendor-strike-notice h3 { color: var(--danger); margin-bottom: 8px; }
 .submitted-notice h3 { color: var(--success); margin-bottom: 8px; }
+
+/* Instant Order Results */
+.instant-results {
+  background: var(--bg-card);
+  border: 1px solid var(--warning);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 16px;
+}
+.instant-results h3 {
+  font-size: 16px;
+  color: var(--warning);
+  margin-bottom: 12px;
+}
+.instant-result-card {
+  background: var(--bg);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+}
+.instant-result-card.is-me {
+  border-left: 3px solid var(--primary);
+}
+.instant-result-header {
+  font-size: 13px;
+  margin-bottom: 6px;
+}
+.instant-result-items {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+.instant-result-calc {
+  font-size: 13px;
+}
 .submitted-players {
   margin-top: 16px;
   font-size: 13px;
