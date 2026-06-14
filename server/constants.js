@@ -20,7 +20,6 @@ module.exports = {
 
   // Pricing
   BULK_DISCOUNTS: [
-    { minQty: 50, discount: 0.25 },
     { minQty: 20, discount: 0.15 },
     { minQty: 10, discount: 0.10 },
     { minQty: 0, discount: 0 }
@@ -30,8 +29,10 @@ module.exports = {
   // Customer orders
   ORDER_PRICE_MULTIPLIER_MIN: 1.2,
   ORDER_PRICE_MULTIPLIER_MAX: 2.0,
-  ORDER_LEAD_TIME_MIN: 1,
+  ORDER_LEAD_TIME_MIN: 0,
   ORDER_LEAD_TIME_MAX: 4,
+  // Lead time 0 orders get bonus multiplier
+  INSTANT_ORDER_BONUS_MULTIPLIER: 1.3,
   ORDER_QUANTITY_MIN: 2,
   ORDER_QUANTITY_MAX: 15,
   ORDER_COLORS_MIN: 1,

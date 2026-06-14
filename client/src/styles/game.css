@@ -549,6 +549,55 @@ body {
   color: var(--text-muted);
 }
 
+.vendor-ref-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 14px;
+  margin-bottom: 16px;
+  font-size: 12px;
+}
+.vendor-ref-label {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+.vendor-ref-item {
+  background: var(--bg);
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.instant-badge {
+  font-size: 11px;
+  background: rgba(245, 158, 11, 0.2);
+  color: var(--warning);
+  padding: 2px 8px;
+  border-radius: 4px;
+  margin-left: 6px;
+}
+.order-card.instant-order {
+  border-color: var(--warning);
+  background: rgba(245, 158, 11, 0.03);
+}
+.order-deadline.instant {
+  color: var(--warning);
+  font-weight: 600;
+}
+.order-item-symbol {
+  font-size: 16px;
+  font-weight: bold;
+}
+.order-item-cost {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-left: auto;
+  margin-right: 8px;
+}
+
 .turn-indicator {
   padding: 8px 16px;
   border-radius: 8px;
